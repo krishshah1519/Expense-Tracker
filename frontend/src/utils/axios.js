@@ -19,7 +19,7 @@ function getCookie(name) {
 }
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  baseURL:  process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api',
   withCredentials: true,
   headers: {
     'X-CSRFToken': getCookie('csrftoken'),
