@@ -1,13 +1,13 @@
 import axios from 'axios';
 
-// Get CSRF token from cookie
+// Util to get cookie value
 function getCookie(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
     const cookies = document.cookie.split(';');
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i].trim();
-      if (cookie.startsWith(name + '=')) {
+      if (cookie.substring(0, name.length + 1) === name + '=') {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
         break;
       }
@@ -16,25 +16,22 @@ function getCookie(name) {
   return cookieValue;
 }
 
+// Axios instance
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000',
+  baseURL: 'http://localhost:8000/api',
   withCredentials: true,
-  headers: {
-    'X-CSRFToken': getCookie('csrftoken'),
-    'Content-Type': 'application/json'
-  },
 });
 
-// Attach CSRF token for safe HTTP methods (POST, PUT, DELETE)
-api.interceptors.request.use((config) => {
-  const csrfToken = getCookie('csrftoken');
-  if (
-    ['post', 'put', 'patch', 'delete'].includes(config.method) &&
-    csrfToken
-  ) {
-    config.headers['X-CSRFToken'] = csrfToken;
-  }
-  return config;
-});
+// Request interceptor to dynamically set CSRF token
+api.interceptors.request.use(
+  (config) => {
+    const csrfToken = getCookie('csrftoken');
+    if (csrfToken) {
+      config.headers['X-CSRFToken'] = csrfToken;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export default api;
