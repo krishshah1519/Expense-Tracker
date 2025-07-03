@@ -21,7 +21,8 @@ except UndefinedValueError as e:
     raise Exception(f"Missing environment variable: {e}")
 
 # Hosts
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
+ALLOWED_HOSTS=expense-tracker-zfm2.onrender.com,localhost,127.0.0.1
+
 
 # Application definition
 INSTALLED_APPS = [
