@@ -6,6 +6,7 @@ from pathlib import Path
 from decouple import config, UndefinedValueError
 import dj_database_url
 
+from corsheaders.defaults import default_headers
 # BASE_DIR setup
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -19,7 +20,10 @@ except UndefinedValueError as e:
     raise Exception(f"Missing environment variable: {e}")
 
 # Hosts (comma-separated in env)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='expense-tracker-zfm2.onrender.com,localhost,127.0.0.1'
+).split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -50,17 +54,17 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='https://expensetracker-m4kfq1ldo-krishshah1519-gmailcoms-projects.vercel.app'
+    default='https://expensetracker-efncv0h2c-krishshah1519-gmailcoms-projects.vercel.app'
 ).split(',')
 
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='https://expensetracker-m4kfq1ldo-krishshah1519-gmailcoms-projects.vercel.app'
+    default='https://expensetracker-efncv0h2c-krishshah1519-gmailcoms-projects.vercel.app'
 ).split(',')
 
 CORS_ALLOW_CREDENTIALS = True
 
-
+CORS_ALLOW_HEADERS = list(default_headers) + ['X-CSRFToken']
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'None'
