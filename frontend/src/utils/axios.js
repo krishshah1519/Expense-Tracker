@@ -19,6 +19,10 @@ function getCookie(name) {
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000',
   withCredentials: true,
+  headers: {
+    'X-CSRFToken': getCookie('csrftoken'),
+    'Content-Type': 'application/json'
+  },
 });
 
 // Attach CSRF token for safe HTTP methods (POST, PUT, DELETE)
