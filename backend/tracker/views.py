@@ -3,26 +3,22 @@ from uuid import uuid4
 from datetime import datetime, timedelta
 import calendar
 import pandas as pd
-
 from django.core.cache import cache
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db.models import Sum
 from django.db.models.functions import ExtractMonth
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404
-
 from django.views.decorators.csrf import ensure_csrf_cookie
-
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
-
+from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import AccessToken
-
+from  django.db.models import Q
 from dateutil.relativedelta import relativedelta
-
 from .models import Expense
 from .serializer import UserSerializer, LoginSerializer, ExpenseSerializer, RegisterSerializer
 from .tasks import email_verification_otp_mail, email_successfully_verified_mail
@@ -38,14 +34,13 @@ class UserExpenseSummaryAPIView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get(self, request):
-        # --- 1. Read filters ---
         user_id = request.query_params.get("user_id")
         start_date = request.query_params.get("start_date")
         end_date = request.query_params.get("end_date")
-        month = request.query_params.get("month")     # YYYY-MM
+
         category = request.query_params.get("category")
 
-        # --- 2. Build base user queryset ---
+
         if user_id:
             users = User.objects.filter(id=user_id)
         else:
@@ -54,37 +49,13 @@ class UserExpenseSummaryAPIView(APIView):
         result = []
 
         for user in users:
-            # --- 3. Build filtered Expense queryset for this user ---
+
             qs = Expense.objects.filter(user=user)
 
             if start_date and end_date:
                 qs = qs.filter(date__range=[start_date, end_date])
-            elif month and category:
-                try:
-                    dt = datetime.strptime(month, "%Y-%m")
-                    qs = qs.filter(
-                        date__year=dt.year,
-                        date__month=dt.month,
-                        category=category
-                    )
-                except ValueError:
-                    return Response(
-                        {"error": "Invalid month format. Use YYYY-MM."},
-                        status=400
-                    )
-            elif month:
-                try:
-                    dt = datetime.strptime(month, "%Y-%m")
-                    qs = qs.filter(
-                        date__year=dt.year,
-                        date__month=dt.month
-                    )
-                except ValueError:
-                    return Response(
-                        {"error": "Invalid month format. Use YYYY-MM."},
-                        status=400
-                    )
-            elif category:
+
+            if category:
                 qs = qs.filter(category=category)
 
 
@@ -96,7 +67,7 @@ class UserExpenseSummaryAPIView(APIView):
                 .annotate(total=Sum("amount"))
                 .order_by("category")
             )
-            # Convert to list of simple dicts
+
             cat_list = [
                 {"category": entry["category"], "total": entry["total"]}
                 for entry in cat_summary
@@ -315,14 +286,26 @@ class ExpenseAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        search_query = request.query_params.get('search', '')
         expenses = Expense.objects.filter(user=request.user)
-        serializer = ExpenseSerializer(expenses, many=True)
 
-        return Response({
+        if search_query:
+            expenses = expenses.filter(
+                Q(category__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(date__icontains=search_query) |
+                Q(amount__icontains=search_query)
+            )
+
+        paginator = PageNumberPagination()
+        paginator.page_size = 10
+        paginated_expenses = paginator.paginate_queryset(expenses, request)
+        serializer = ExpenseSerializer(paginated_expenses, many=True)
+
+        return paginator.get_paginated_response({
             "message": "Expenses successfully fetched",
             "data": serializer.data
-        }, status=status.HTTP_200_OK)
-
+        })
     def post(self, request):
         expenses = request.data
         serializer = ExpenseSerializer(data=expenses)

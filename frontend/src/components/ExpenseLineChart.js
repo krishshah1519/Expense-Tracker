@@ -55,7 +55,7 @@ const ExpenseLineChart = () => {
         label: `Monthly Expenses (${year})`,
         data: monthlyData,
         fill: false,
-        borderColor: '#3b82f6', // Tailwind blue-500
+        borderColor: '#3b82f6',
         backgroundColor: '#3b82f6',
         tension: 0.4,
         pointRadius: 4,
@@ -91,15 +91,15 @@ const ExpenseLineChart = () => {
     scales: {
       x: {
         ticks: {
-          color: '#374151', // gray-700
+          color: '#374151',
         },
         grid: {
-          color: '#e5e7eb', // gray-200
+          color: '#e5e7eb',
         },
       },
       y: {
         ticks: {
-          color: '#374151', // gray-700
+          color: '#374151',
         },
         grid: {
           color: '#e5e7eb',
@@ -119,8 +119,6 @@ const ExpenseLineChart = () => {
           <input
             id="year"
             type="number"
-            min="2000"
-            max="2100"
             value={year}
             onChange={(e) => setYear(e.target.value)}
             className="px-2 py-1 w-28 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"

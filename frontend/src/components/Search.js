@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Table from 'react-bootstrap/Table';
 import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
@@ -22,25 +22,29 @@ export default function SearchBar() {
     amount: '',
   });
   const [editId, setEditId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchData = async () => {
-    try {
-      const response = await api.get('/expenses/');
-      setData(response.data.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  };
+  const fetchData = async (page = 1, searchQuery = '') => {
+  try {
+    const response = await api.get(`/expenses/?page=${page}&search=${encodeURIComponent(searchQuery)}`);
+    setData(response.data.results.data);
+    setTotalPages(Math.ceil(response.data.count / 10));
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+};
+
 
   useEffect(() => {
-    fetchData();
-  }, []);
+  fetchData(currentPage, search);
+}, [currentPage, search]);
+
 
   const handleDelete = async (id) => {
     try {
       const res = await api.delete(`/expenses/${id}/`, { withCredentials: true });
       if (res.status === 204) {
-        console.log('Deleted successfully');
         setData((prevData) => prevData.filter((item) => item.id !== id));
       }
     } catch (err) {
@@ -61,12 +65,7 @@ export default function SearchBar() {
   };
 
   const handleAddClick = () => {
-    setFormData({
-      category: '',
-      description: '',
-      date: '',
-      amount: '',
-    });
+    setFormData({ category: '', description: '', date: '', amount: '' });
     setEditId(null);
     setIsEditMode(false);
     setShowModal(true);
@@ -82,24 +81,16 @@ export default function SearchBar() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      let res;
       if (isEditMode) {
-
-        const res = await api.put(`/expenses/${editId}/`, formData, {
-          withCredentials: true,
-        });
+        res = await api.put(`/expenses/${editId}/`, formData, { withCredentials: true });
         if (res.status === 200) {
-          const updated = res.data;
-          setData((prevData) =>
-            prevData.map((item) => (item.id === updated.id ? updated : item))
-          );
+          fetchData(currentPage); // refresh current page
         }
       } else {
-
-        const res = await api.post('/expenses/', formData, {
-          withCredentials: true,
-        });
+        res = await api.post('/expenses/', formData, { withCredentials: true });
         if (res.status === 201) {
-          setData((prevData) => [...prevData, res.data]);
+          fetchData(currentPage);
         }
       }
       handleModalClose();
@@ -107,25 +98,18 @@ export default function SearchBar() {
       console.error('Submit failed:', err);
     }
   };
-const filteredData = data.filter((item) => {
-  const lowerSearch = search.toLowerCase();
-  return (
-    (item.category && item.category.toLowerCase().includes(lowerSearch)) ||
-    (item.description && item.description.toLowerCase().includes(lowerSearch)) ||
-    (item.date && item.date.toLowerCase().includes(lowerSearch)) ||
-    (item.amount && item.amount.toString().toLowerCase().includes(lowerSearch))
-  );
-});
 
 
   return (
     <div className="App">
       <Container fluid className="px-4">
-        <ExportToExcel classname='flex-1 w-100  mt-[-10px] ml-10'/>
-        <header className="mt-2 ml-4 my-4 fs-3 fw-bold">  All Expenses <Button className="mt-4 mb-3 ml-7" onClick={handleAddClick}>
-          Add Expense
-        </Button> </header>
-
+        <ExportToExcel className='w-100' />
+        <header className="mt-2 my-4 fs-3 fw-bold">
+          All Expenses
+          <Button className="ms-3 mb-2" onClick={handleAddClick}>
+            Add Expense
+          </Button>
+        </header>
 
         <Form>
           <InputGroup className="my-3">
@@ -136,7 +120,7 @@ const filteredData = data.filter((item) => {
           </InputGroup>
         </Form>
 
-        <Table striped bordered hover responsive className="w-100" style={{ minWidth: '1000px' }}>
+        <Table striped bordered hover responsive style={{ minWidth: '1000px' }}>
           <thead>
             <tr>
               <th>Category</th>
@@ -148,7 +132,7 @@ const filteredData = data.filter((item) => {
             </tr>
           </thead>
           <tbody>
-            {filteredData.map((item) => (
+            {data.map((item) => (
               <tr key={item.id}>
                 <td>{item.category}</td>
                 <td>{item.description}</td>
@@ -169,7 +153,26 @@ const filteredData = data.filter((item) => {
           </tbody>
         </Table>
 
+        {/* Pagination Controls */}
+        <div className="d-flex justify-content-center gap-2 my-4">
+          <Button
+            variant="secondary"
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span>Page {currentPage} of {totalPages}</span>
+          <Button
+            variant="secondary"
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
 
+        {/* Modal */}
         <Modal show={showModal} onHide={handleModalClose}>
           <Modal.Header closeButton>
             <Modal.Title>{isEditMode ? 'Edit Expense' : 'Add Expense'}</Modal.Title>
