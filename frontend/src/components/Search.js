@@ -94,7 +94,7 @@ export default function SearchBar() {
           );
         }
       } else {
-        // CREATE
+
         const res = await api.post('/expenses/', formData, {
           withCredentials: true,
         });

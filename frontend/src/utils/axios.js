@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Util to get cookie value
+
 function getCookie(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
@@ -16,13 +16,11 @@ function getCookie(name) {
   return cookieValue;
 }
 
-// Axios instance
 const api = axios.create({
   baseURL: 'http://localhost:8000/api',
   withCredentials: true,
 });
 
-// Request interceptor to dynamically set CSRF token
 api.interceptors.request.use(
   (config) => {
     const csrfToken = getCookie('csrftoken');

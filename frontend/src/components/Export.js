@@ -26,7 +26,7 @@ function ExportToExcel() {
       let payload = {};
 
       if (filterType === 'all') {
-        // no filters, export all
+
       } else if (filterType === 'month') {
         if (!month) return alert("Please select a month.");
         payload.month = month;
