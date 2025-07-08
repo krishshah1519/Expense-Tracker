@@ -49,10 +49,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default='https://your-prod-url.vercel.app,http://localhost:3000'
-).split(',')
+CORS_ALLOWED_ORIGINS = [
+    "https://v0-new-project-luh3r9vayj5.vercel.app",
+    "http://localhost:3000",
+]
+
 
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
