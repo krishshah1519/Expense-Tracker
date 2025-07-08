@@ -6,16 +6,19 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try {
+  try {
+    await api.post('/logout/');
+  } catch (err) {
+    console.warn('Logout failed:', err.response?.data || err);
+  } finally {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    window.location.reload().then(navigate('/login/'));
 
-      const res = await api.post('/logout/', {}, { withCredentials: true });
-      if (res.status === 200 && res.data.status) {
-        navigate('/login/');
-      }
-    } catch (err) {
-      console.error('Logout failed:', err.response?.data || err);
-    }
-  };
+
+  }
+};
+
 
   return (
     <nav className="bg-gradient-to-r from-purple-900 via-indigo-800 to-blue-700 shadow-2xl px-6 py-4 flex justify-between items-center z-50">

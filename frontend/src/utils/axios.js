@@ -1,40 +1,64 @@
 import axios from 'axios';
 
-// Get CSRF token from cookie
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.startsWith(name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000',
-  withCredentials: true,
+  baseURL: API_BASE_URL,
   headers: {
-    'X-CSRFToken': getCookie('csrftoken'),
-    'Content-Type': 'application/json'
+    Authorization: localStorage.getItem("access_token")
+      ? `Bearer ${localStorage.getItem("access_token")}`
+      : undefined,cd
   },
 });
 
-// Attach CSRF token for safe HTTP methods (POST, PUT, DELETE)
+// Request interceptor (sets token before every request)
 api.interceptors.request.use((config) => {
-  const csrfToken = getCookie('csrftoken');
-  if (
-    ['post', 'put', 'patch', 'delete'].includes(config.method) &&
-    csrfToken
-  ) {
-    config.headers['X-CSRFToken'] = csrfToken;
+  const token = localStorage.getItem("access_token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+// Refresh token helper
+const refreshToken = async () => {
+  const refresh = localStorage.getItem("refresh_token");
+  if (!refresh) throw new Error("No refresh token");
+
+  const response = await axios.post(`${API_BASE_URL}token/refresh/`, {
+    refresh,
+  });
+
+  const newAccessToken = response.data.access;
+  localStorage.setItem("access_token", newAccessToken);
+  return newAccessToken;
+};
+
+// Response interceptor (handle token expiration)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+      try {
+        const newAccessToken = await refreshToken();
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "/login";
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default api;

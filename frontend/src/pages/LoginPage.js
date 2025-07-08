@@ -10,15 +10,17 @@ export default function LoginPage() {
 
   const onSubmit = async (data) => {
     try {
-      await api.get('/csrf/');
+
       const response = await api.post("/login/", {
         username: data.username,
         password: data.password
-      }, { withCredentials: true });
+      });
 
       if (response.status === 200 && response.data.status) {
         console.log("Login successful");
 
+        localStorage.setItem("access_token", response.data.access_token);
+        localStorage.setItem("refresh_token", response.data.refresh_token);
 
         const isStaff = response.data.is_staff;
         if (isStaff) {
