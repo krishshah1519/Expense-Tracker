@@ -30,11 +30,11 @@ from dateutil.relativedelta import relativedelta
 from .models import Expense
 from .serializer import UserSerializer, LoginSerializer, ExpenseSerializer, RegisterSerializer
 from .tasks import  email_successfully_verified_mail
-
+import logging
 
 
 User = get_user_model()
-
+logger = logging.getLogger(__name__)
 class UserExpenseSummaryAPIView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
