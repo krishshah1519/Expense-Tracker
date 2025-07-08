@@ -139,12 +139,17 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+import os
+
+REDIS_URL = os.environ.get("redis-15519.c61.us-east-1-3.ec2.redns.redis-cloud.com:15519", "redis://localhost:6379")
+
 CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_CACHE_URL', default=config('REDIS_URL', default='redis://localhost:6379/1')),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": REDIS_URL.split(":")[2].split("@")[0] if "@" in REDIS_URL else "",
         }
     }
 }
