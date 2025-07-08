@@ -10,24 +10,7 @@ from expense_tracker.settings import EMAIL_HOST_USER
 from django.core.mail import get_connection
 
 
-@shared_task
-def email_verification_otp_mail(otp, name, email):
-    connection = get_connection()
-    print(
-        f"[TASK] email_verification_otp_mail called with otp={otp}, name={name}, email={email}")
-    subject = "Email Verification and Account Activation"
-    context = {'user': name, 'otp': otp}
-    html_content = render_to_string(
-        'emails/otp_verification_mail.html', context)
-    text_content = f"Hi {name},\nYour OTP is: {otp}. It is valid for 10 minutes.\nPlease do not share this code."
-    from_email = EMAIL_HOST_USER
-    to_email = [email]
 
-    email_message = EmailMultiAlternatives(
-        subject, text_content, from_email, to_email, connection=connection)
-    email_message.attach_alternative(html_content, "text/html")
-    email_message.send()
-    connection.close()
 
 
 @shared_task

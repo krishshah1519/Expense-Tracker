@@ -3,7 +3,11 @@ from uuid import uuid4
 from datetime import datetime, timedelta
 import calendar
 import pandas as pd
-
+from datetime import timedelta
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from expense_tracker.settings import EMAIL_HOST_USER
+from django.core.mail import get_connection
 from django.core.cache import cache
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db.models import Sum
@@ -25,7 +29,7 @@ from dateutil.relativedelta import relativedelta
 
 from .models import Expense
 from .serializer import UserSerializer, LoginSerializer, ExpenseSerializer, RegisterSerializer
-from .tasks import email_verification_otp_mail, email_successfully_verified_mail
+from .tasks import  email_successfully_verified_mail
 
 
 
@@ -212,7 +216,7 @@ class RegisterAPIView(APIView):
             "otp": str(otp)
         }, timeout=600)
 
-        email_verification_otp_mail.delay(
+        email_verification_otp_mail(
             otp, validated_data['first_name'], validated_data['email'])
 
         return Response({
@@ -432,3 +436,21 @@ class AllCategoriesAPIView(APIView):
     def get(self, request):
         cats = Expense.objects.values_list("category", flat=True).distinct()
         return Response({"categories": list(cats)})
+
+def email_verification_otp_mail(otp, name, email):
+    connection = get_connection()
+    print(
+        f"[TASK] email_verification_otp_mail called with otp={otp}, name={name}, email={email}")
+    subject = "Email Verification and Account Activation"
+    context = {'user': name, 'otp': otp}
+    html_content = render_to_string(
+        'emails/otp_verification_mail.html', context)
+    text_content = f"Hi {name},\nYour OTP is: {otp}. It is valid for 10 minutes.\nPlease do not share this code."
+    from_email = EMAIL_HOST_USER
+    to_email = [email]
+
+    email_message = EmailMultiAlternatives(
+        subject, text_content, from_email, to_email, connection=connection)
+    email_message.attach_alternative(html_content, "text/html")
+    email_message.send()
+    connection.close()
