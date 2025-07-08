@@ -11,15 +11,13 @@ from django.db.models.functions import ExtractMonth
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404
 
-from django.views.decorators.csrf import ensure_csrf_cookie
-
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.tokens import AccessToken ,RefreshToken
 
 from dateutil.relativedelta import relativedelta
 
@@ -28,9 +26,6 @@ from .serializer import UserSerializer, LoginSerializer, ExpenseSerializer, Regi
 from .tasks import email_verification_otp_mail, email_successfully_verified_mail
 
 
-@ensure_csrf_cookie
-def get_csrf_token(request):
-    return JsonResponse({"message": "CSRF cookie set"})
 
 User = get_user_model()
 
@@ -38,14 +33,14 @@ class UserExpenseSummaryAPIView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get(self, request):
-        # --- 1. Read filters ---
+
         user_id = request.query_params.get("user_id")
         start_date = request.query_params.get("start_date")
         end_date = request.query_params.get("end_date")
         month = request.query_params.get("month")     # YYYY-MM
         category = request.query_params.get("category")
 
-        # --- 2. Build base user queryset ---
+
         if user_id:
             users = User.objects.filter(id=user_id)
         else:
@@ -54,7 +49,7 @@ class UserExpenseSummaryAPIView(APIView):
         result = []
 
         for user in users:
-            # --- 3. Build filtered Expense queryset for this user ---
+
             qs = Expense.objects.filter(user=user)
 
             if start_date and end_date:
@@ -269,7 +264,6 @@ class VerifyOTPView(APIView):
 
 
 class LoginAPIView(APIView):
-    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -288,24 +282,25 @@ class LoginAPIView(APIView):
             return Response(
                 {"status": False, "message": "Invalid Credentials"}, status=401)
 
-        login(request, user)
-
+        refresh = RefreshToken.for_user(user)
         return Response({
-            "status": 200,
-            "message": "Login Successful",
-            "is_staff": user.is_staff,
+            "status":200,
+            "message":"Login Successful!!",
+            "is_staff":user.is_staff,
+            "access_token":str(refresh.access_token),
+            "refresh_token":str(refresh)
+
         })
+
+
 
 
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        logout(request)
-        return Response({"status": True,
-                         "message": "Logout successful."},
-                        status.HTTP_200_OK)
 
+        return Response({"status": True, "message": "Client should delete the JWT token"}, status=200)
 
 def generate_otp():
     return randint(100000, 999999)
