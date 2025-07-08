@@ -11,6 +11,8 @@ from django.db.models.functions import ExtractMonth
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404
 
+from django.contrib.auth import authenticate
+
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -263,34 +265,47 @@ class VerifyOTPView(APIView):
             )
 
 
+
+
 class LoginAPIView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        try:
+            serializer = LoginSerializer(data=request.data)
 
-        if not serializer.is_valid():
+            if not serializer.is_valid():
+                return Response(
+                    {"status": False, "error": serializer.errors}, status=400)
+
+            validated_data = serializer.validated_data
+            user = authenticate(
+                username=validated_data['username'],
+                password=validated_data['password']
+            )
+
+            if user is None:
+                return Response(
+                    {"status": False, "message": "Invalid Credentials"}, status=401)
+
+            refresh = RefreshToken.for_user(user)
+
+            return Response({
+                "status": 200,
+                "message": "Login Successful!!",
+                "is_staff": user.is_staff,
+                "access_token": str(refresh.access_token),
+                "refresh_token": str(refresh)
+            })
+
+        except Exception as e:
+
+            print(f"Login error: {str(e)}")
             return Response(
-                {"status": False, "error": serializer.errors}, status=400)
+                {"status": False, "message": "Internal Server Error"},
+                status=500
+            )
 
-        validated_data = serializer.validated_data
-        user = authenticate(
-            username=validated_data['username'],
-            password=validated_data['password'])
-
-        if user is None:
-            return Response(
-                {"status": False, "message": "Invalid Credentials"}, status=401)
-
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            "status":200,
-            "message":"Login Successful!!",
-            "is_staff":user.is_staff,
-            "access_token":str(refresh.access_token),
-            "refresh_token":str(refresh)
-
-        })
 
 
 
