@@ -7,7 +7,7 @@ const api = axios.create({
   headers: {
     Authorization: localStorage.getItem("access_token")
       ? `Bearer ${localStorage.getItem("access_token")}`
-      : undefined,cd
+      : undefined,
   },
 });
 
