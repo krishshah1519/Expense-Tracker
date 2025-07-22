@@ -1,0 +1,6 @@
+frontend/node_modules
+.git
+*.log
+backend/.env
+Dockerfile
+README.md

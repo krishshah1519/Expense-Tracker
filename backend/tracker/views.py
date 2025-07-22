@@ -7,9 +7,9 @@ from django.core.cache import cache
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db.models import Sum
 from django.db.models.functions import ExtractMonth
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
-from django.views.decorators.csrf import ensure_csrf_cookie
+
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -24,9 +24,6 @@ from .serializer import UserSerializer, LoginSerializer, ExpenseSerializer, Regi
 from .tasks import email_verification_otp_mail, email_successfully_verified_mail
 
 
-@ensure_csrf_cookie
-def get_csrf_token(request):
-    return JsonResponse({"message": "CSRF cookie set"})
 
 User = get_user_model()
 

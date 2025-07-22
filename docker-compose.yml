@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/app
+      - sqlite_data:/app/
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+    depends_on:
+      - redis
+    env_file:
+      - ./backend/.env
+
+  celery:
+    image: expense_tracker-backend
+    command: celery -A expense_tracker worker --loglevel=info --pool=solo
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - backend
+    env_file:
+      - ./backend/.env
+
+  celery-beat:
+    image: expense_tracker-backend
+    command: celery -A expense_tracker beat --loglevel=info
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - backend
+    env_file:
+      - ./backend/.env
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  frontend:
+    build:
+      context: ./frontend
+
+    ports:
+      - "3000:80"
+volumes:
+  sqlite_data:
